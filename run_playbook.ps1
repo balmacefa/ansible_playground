@@ -9,6 +9,7 @@ $requiredProfiles = @()
 if ($Playbook -match "zookeeper") { $requiredProfiles += "zookeeper" }
 if ($Playbook -match "postgres") { $requiredProfiles += "postgres" }
 if ($Playbook -match "rocky") { $requiredProfiles += "rocky" }
+if ($Playbook -match "failover_orchestration") { $requiredProfiles += "zookeeper" }
 if ($Playbook -eq "site.yml") { 
     $requiredProfiles += "rocky"
     $requiredProfiles += "postgres" 

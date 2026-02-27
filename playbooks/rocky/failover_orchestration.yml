@@ -4,11 +4,11 @@
   connection: local
   tasks:
     - name: Ensure POC script is deployed to node-1
-      command: ansible-playbook -i inventory.ini -l node-1 rocky/zookeeper_poc.yml
+      command: ansible-playbook -i /playbooks/inventory.ini -l node-1 /playbooks/rocky/zookeeper_poc.yml
       register: deploy_out
 
     - name: Deploy failover script to node-1
-      command: scp rocky/failover_poc_script.py node-1:/tmp/failover_poc.py
+      command: scp /playbooks/rocky/failover_poc_script.py node-1:/tmp/failover_poc.py
 
     - name: Ensure script is executable
       command: docker exec node-1 chmod +x /tmp/failover_poc.py
