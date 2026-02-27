@@ -1,7 +1,31 @@
 #!/bin/bash
-if [ -z "$1" ]; then
+
+PLAYBOOK=$1
+
+if [ -z "$PLAYBOOK" ]; then
   echo "Usage: ./run_playbook.sh <playbook_name.yml>"
   exit 1
 fi
-echo "Running playbook: $1 inside ansible-master container..."
-docker exec -it ansible-master ansible-playbook -i inventory.ini "$1"
+
+# Define profile mapping
+PROFILES=()
+[[ "$PLAYBOOK" == *"zookeeper"* ]] && PROFILES+=("zookeeper")
+[[ "$PLAYBOOK" == *"postgres"* ]] && PROFILES+=("postgres")
+[[ "$PLAYBOOK" == *"rocky"* ]] && PROFILES+=("rocky")
+[[ "$PLAYBOOK" == "site.yml" ]] && PROFILES+=("rocky" "postgres")
+
+# Always ensure ansible-master is running
+if [ "$(docker inspect -f '{{.State.Running}}' ansible-master 2>/dev/null)" != "true" ]; then
+    echo "Starting ansible-master..."
+    docker compose up -d ansible-master
+fi
+
+# Ensure required profiles are running
+# Use an associative array-like approach to unique profiles
+for profile in $(echo "${PROFILES[@]}" | tr ' ' '\n' | sort -u); do
+    echo "Ensuring profile '$profile' is active..."
+    docker compose --profile "$profile" up -d
+done
+
+echo "Running playbook: $PLAYBOOK inside ansible-master container..."
+docker exec -it ansible-master ansible-playbook -i inventory.ini "$PLAYBOOK"

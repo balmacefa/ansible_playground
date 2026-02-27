@@ -43,4 +43,15 @@ This will bring up the entire environment.
 docker compose --profile rocky --profile postgres --profile zookeeper up -d
 ```
 
-*Note: You can also use environment variables instead of passings flags, like so: `COMPOSE_PROFILES=rocky,postgres,zookeeper docker compose up -d`*
+ 
+ ## Proof of Concept: Zookeeper Interaction
+ 
+ You can verify the interaction between the Rocky Linux nodes and the Zookeeper ensemble by running the POC playbook:
+ 
+ ```bash
+ # Starts required nodes and runs the POC
+ COMPOSE_PROFILES=rocky,zookeeper docker compose up -d
+ ./run_playbook.sh rocky/zookeeper_poc.yml
+ ```
+ 
+ For more details on all available playbooks, see [PLAYBOOKS.md](file:///c:/Users/fabia/OneDrive/Escritorio/repos/ansible/PLAYBOOKS.md).

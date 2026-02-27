@@ -1,0 +1,74 @@
+---
+- name: Zookeeper Leader Failover POC
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Ensure POC script is deployed to node-1
+      command: ansible-playbook -i inventory.ini -l node-1 rocky/zookeeper_poc.yml
+      register: deploy_out
+
+    - name: Deploy failover script to node-1
+      command: scp rocky/failover_poc_script.py node-1:/tmp/failover_poc.py
+
+    - name: Ensure script is executable
+      command: docker exec node-1 chmod +x /tmp/failover_poc.py
+
+    - name: Identify current Zookeeper Leader
+      shell: |
+        for host in zookeeper-1 zookeeper-2 zookeeper-3 zookeeper-4; do
+          if python3 -c 'import socket, sys; s=socket.create_connection(("'$host'", 2181), timeout=2); s.sendall(b"stat"); print(s.recv(1024).decode())' 2>/dev/null | grep 'Mode: leader' > /dev/null; then
+            echo $host
+            exit 0
+          fi
+        done
+      register: current_leader
+      changed_when: false
+
+    - name: Fail if no leader found
+      fail:
+        msg: "No Zookeeper leader found! Ensure the cluster is healthy."
+      when: current_leader.stdout == ""
+
+    - name: Display current leader
+      debug:
+        msg: "Current Zookeeper Leader is: {{ current_leader.stdout }}"
+
+    - name: Start Failover POC Script on node-1 (Async)
+      shell: docker exec node-1 bash -c "python3 /tmp/failover_poc.py > /tmp/failover_poc.log 2>&1 &"
+      async: 60
+      poll: 0
+      register: script_async
+
+    - name: Wait for script to start (5 seconds)
+      pause:
+        seconds: 5
+
+    - name: 💥 CRASH THE LEADER 💥
+      command: "docker stop {{ current_leader.stdout }}"
+      register: stop_out
+
+    - name: Wait for Zookeeper recovery (15 seconds)
+      pause:
+        seconds: 15
+
+    - name: Collect POC logs from node-1
+      command: docker exec node-1 cat /tmp/failover_poc.log
+      register: poc_logs
+
+    - name: Display POC Interaction Logs
+      debug:
+        var: poc_logs.stdout_lines
+
+    - name: 🛠️ RECOVER THE CLUSTER 🛠️
+      command: "docker start {{ current_leader.stdout }}"
+      
+    - name: Final Health Check
+      shell: |
+        for host in zookeeper-1 zookeeper-2 zookeeper-3 zookeeper-4; do
+          docker exec $host bash -c "echo stat | nc localhost 2181 | grep Mode" || echo "$host is DOWN"
+        done
+      register: final_status
+
+    - name: Show Final Cluster Status
+      debug:
+        var: final_status.stdout_lines

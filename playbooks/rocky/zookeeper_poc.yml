@@ -1,0 +1,87 @@
+---
+- name: Zookeeper Interaction POC on Rocky Nodes
+  hosts: nodes
+  become: yes
+  tasks:
+    - name: Ensure python3-pip is installed
+      dnf:
+        name: python3-pip
+        state: present
+
+    - name: Ensure gcc and python3-devel are installed for kazoo extensions
+      dnf:
+        name:
+          - gcc
+          - python3-devel
+        state: present
+
+    - name: Install kazoo python library for Zookeeper interaction
+      pip:
+        name: kazoo
+        executable: pip3
+
+    - name: Create POC python script
+      copy:
+        dest: /tmp/zk_poc.py
+        mode: '0755'
+        content: |
+          #!/usr/bin/env python3
+          import sys
+          import time
+          import socket
+          import platform
+          from kazoo.client import KazooClient
+          from kazoo.exceptions import NoNodeError
+
+          # Provide zookeeper nodes comma-separated
+          zk_hosts = 'zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181'
+          
+          # We check if we can reach the host first to avoid kazoo hanging indefinitely
+          try:
+              s = socket.create_connection(("zookeeper-1", 2181), timeout=2)
+              s.close()
+          except Exception as e:
+              print("Cannot reach zookeeper. Is it running?")
+              sys.exit(1)
+
+          zk = KazooClient(hosts=zk_hosts)
+          zk.start()
+
+          hostname = platform.node()
+          poc_path = f"/rocky_poc_{hostname}"
+
+          # 1. Ensure node is deleted first (use suppress for NoNodeError)
+          try:
+              zk.delete(poc_path)
+          except NoNodeError:
+              pass
+
+          # 2. Create a node
+          print(f"Creating znode {poc_path} with data 'Hello from {hostname}'")
+          zk.create(poc_path, f"Hello from {hostname}".encode('utf-8'))
+
+          # 3. Read the node back
+          data, stat = zk.get(poc_path)
+          print(f"Successfully read back: {data.decode('utf-8')}")
+
+          # 4. Modify the node
+          print(f"Updating znode {poc_path} data...")
+          zk.set(poc_path, f"Updated Hello from {hostname}".encode('utf-8'))
+          
+          # 5. Read modified data
+          data, stat = zk.get(poc_path)
+          print(f"Read updated data: {data.decode('utf-8')}")
+
+          # Cleanup
+          zk.delete(poc_path)
+
+          zk.stop()
+          print(f"POC on {hostname} completed successfully.")
+
+    - name: Execute Zookeeper POC Script on Nodes
+      command: python3 /tmp/zk_poc.py
+      register: poc_out
+
+    - name: Display POC Output
+      debug:
+        msg: "{{ poc_out.stdout_lines }}"
