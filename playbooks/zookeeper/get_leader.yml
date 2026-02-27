@@ -39,3 +39,8 @@
     - name: Display Zookeeper Role (Leader/Follower/Observer)
       debug:
         msg: "Role for {{ inventory_hostname }}: {{ zk_stat.stdout | regex_search('Mode: (leader|follower|observer)') | default('Unknown role', true) }}"
+
+    - name: Show the Leader
+      debug:
+        msg: "⭐⭐⭐ The Zookeeper Leader is: {{ inventory_hostname }} ⭐⭐⭐"
+      when: "'Mode: leader' in zk_stat.stdout | default('')"

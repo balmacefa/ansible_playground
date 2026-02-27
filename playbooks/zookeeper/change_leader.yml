@@ -1,0 +1,57 @@
+---
+- name: Safely Change Zookeeper Leader
+  hosts: zookeeper
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Find the current leader
+      shell: |
+        python3 -c '
+        import socket, sys
+        try:
+            s = socket.create_connection(("{{ inventory_hostname }}", 2181), timeout=2)
+            s.sendall(b"stat")
+            print(s.recv(1024).decode().strip())
+        except Exception as e:
+            pass
+        '
+      register: zk_stat
+      changed_when: false
+
+    - name: Identify leader node
+      set_fact:
+        is_leader: "{{ 'Mode: leader' in zk_stat.stdout }}"
+        
+    - name: Display current roles
+      debug:
+        msg: "{{ inventory_hostname }} is {{ 'LEADER' if is_leader else 'FOLLOWER/OBSERVER' }}"
+
+    - name: Restart the leader to force an election
+      shell: "docker restart {{ inventory_hostname }}"
+      when: is_leader
+      register: restart_result
+      changed_when: true
+
+    - name: Wait for Zookeeper cluster to stabilize
+      pause:
+        seconds: 10
+      when: is_leader
+
+    - name: Verify new leader election
+      shell: |
+        python3 -c '
+        import socket, sys
+        try:
+            s = socket.create_connection(("{{ inventory_hostname }}", 2181), timeout=2)
+            s.sendall(b"stat")
+            print(s.recv(1024).decode().strip())
+        except Exception as e:
+            pass
+        '
+      register: zk_stat_after
+      changed_when: false
+
+    - name: Show the new Leader
+      debug:
+        msg: "⭐⭐⭐ The NEW Zookeeper Leader is: {{ inventory_hostname }} ⭐⭐⭐"
+      when: "'Mode: leader' in zk_stat_after.stdout | default('')"
