@@ -16,10 +16,10 @@ The playbooks have been organized into corresponding project folders under the `
 **How to trigger:**
 ```bash
 # Using the helper script
-./run_playbook.sh playbooks/zookeeper/day2ops.yml
+./run_playbook.sh zookeeper/day2ops.yml
 
 # Or directly via docker
-docker exec -it ansible-master bash -c "ansible-playbook -i playbooks/inventory.ini playbooks/zookeeper/day2ops.yml --limit zookeeper"
+docker exec -it ansible-master bash -c "ansible-playbook -i inventory.ini zookeeper/day2ops.yml --limit zookeeper"
 ```
 
 ---
@@ -32,10 +32,10 @@ docker exec -it ansible-master bash -c "ansible-playbook -i playbooks/inventory.
 **How to trigger:**
 ```bash
 # Using the helper script
-./run_playbook.sh playbooks/postgres/setup_dbs.yml
+./run_playbook.sh postgres/setup_dbs.yml
 
 # Or directly via docker
-docker exec -it ansible-master bash -c "ansible-playbook -i playbooks/inventory.ini playbooks/postgres/setup_dbs.yml"
+docker exec -it ansible-master bash -c "ansible-playbook -i inventory.ini postgres/setup_dbs.yml"
 ```
 
 ---
@@ -48,10 +48,10 @@ docker exec -it ansible-master bash -c "ansible-playbook -i playbooks/inventory.
 **How to trigger:**
 ```bash
 # Using the helper script
-./run_playbook.sh playbooks/rocky/setup_nodes.yml
+./run_playbook.sh rocky/setup_nodes.yml
 
 # Or directly via docker
-docker exec -it ansible-master bash -c "ansible-playbook -i playbooks/inventory.ini playbooks/rocky/setup_nodes.yml"
+docker exec -it ansible-master bash -c "ansible-playbook -i inventory.ini rocky/setup_nodes.yml"
 ```
 
 ---
@@ -64,10 +64,10 @@ docker exec -it ansible-master bash -c "ansible-playbook -i playbooks/inventory.
 **How to trigger:**
 ```bash
 # Using the helper script
-./run_playbook.sh playbooks/common/patching.yml
+./run_playbook.sh common/patching.yml
 
 # Or directly via docker
-docker exec -it ansible-master bash -c "ansible-playbook -i playbooks/inventory.ini playbooks/common/patching.yml"
+docker exec -it ansible-master bash -c "ansible-playbook -i inventory.ini common/patching.yml"
 ```
 
 ---
@@ -79,8 +79,8 @@ docker exec -it ansible-master bash -c "ansible-playbook -i playbooks/inventory.
 **How to trigger:**
 ```bash
 # Using the helper script
-./run_playbook.sh playbooks/site.yml
+./run_playbook.sh site.yml
 
 # Or directly via docker
-docker exec -it ansible-master bash -c "ansible-playbook -i playbooks/inventory.ini playbooks/site.yml"
+docker exec -it ansible-master bash -c "ansible-playbook -i inventory.ini site.yml"
 ```
