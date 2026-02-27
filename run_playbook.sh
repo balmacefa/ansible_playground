@@ -10,9 +10,8 @@ fi
 # Define profile mapping
 PROFILES=()
 [[ "$PLAYBOOK" == *"zookeeper"* ]] && PROFILES+=("zookeeper")
-[[ "$PLAYBOOK" == *"postgres"* ]] && PROFILES+=("postgres")
 [[ "$PLAYBOOK" == *"rocky"* ]] && PROFILES+=("rocky")
-[[ "$PLAYBOOK" == "site.yml" ]] && PROFILES+=("rocky" "postgres")
+[[ "$PLAYBOOK" == "site.yml" ]] && PROFILES+=("rocky")
 
 # Always ensure ansible-master is running
 if [ "$(docker inspect -f '{{.State.Running}}' ansible-master 2>/dev/null)" != "true" ]; then

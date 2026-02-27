@@ -1,11 +1,9 @@
 FROM rockylinux:9
 
-# Install epel-release, ansible, ssh clients, python-psycopg2 (for postgres modules)
+# Install epel-release, ansible, ssh clients
 RUN dnf install -y epel-release yum-utils && \
     yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo && \
-    dnf install -y ansible-core openssh-clients sshpass python3 python3-pip python3-devel gcc postgresql-devel docker-ce-cli && \
-    pip3 install psycopg2-binary && \
-    ansible-galaxy collection install community.postgresql
+    dnf install -y ansible-core openssh-clients sshpass python3 python3-pip python3-devel gcc docker-ce-cli
 
 # Generate SSH key for the master
 RUN mkdir -p /root/.ssh && \

@@ -28,22 +28,7 @@ Alternatively, you can trigger them manually via `docker exec` (ensure profiles 
 docker exec -it ansible-master bash -c "ansible-playbook -i inventory.ini zookeeper/day2ops.yml --limit zookeeper"
 ```
 
----
 
-## 2. Postgres (Database Setup)
-**File location:** `playbooks/postgres/setup_dbs.yml`
-**Purpose:** Sets up and configures the PostgreSQL databases using the `db_setup` role.
-**Requirements:** `postgres` docker profile must be running.
-
-**How to trigger:**
-```bash
-# Using the helper script
-./run_playbook.sh postgres/setup_dbs.yml  # Linux/macOS
-.\run_playbook.ps1 postgres/setup_dbs.yml # Windows
-
-# Or directly via docker
-docker exec -it ansible-master bash -c "ansible-playbook -i inventory.ini postgres/setup_dbs.yml"
-```
 
 ---
 
@@ -83,7 +68,7 @@ docker exec -it ansible-master bash -c "ansible-playbook -i inventory.ini common
 
 ## 5. Main Site Setup
 **File location:** `playbooks/site.yml`
-**Purpose:** Triggers the comprehensive setup (combines `rocky/setup_nodes.yml` and `postgres/setup_dbs.yml` natively).
+**Purpose:** Triggers the comprehensive setup (combines `rocky/setup_nodes.yml` natively).
 
 **How to trigger:**
 ```bash

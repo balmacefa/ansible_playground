@@ -1,7 +1,0 @@
----
-- name: Setup PostgreSQL Databases
-  hosts: databases_primary
-  connection: local
-  gather_facts: false
-  roles:
-    - db_setup

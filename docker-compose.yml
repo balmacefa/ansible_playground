@@ -19,7 +19,6 @@ services:
       - rocky
     networks:
       - ansible-net
-      - db-net
 
   node-2:
     build:
@@ -30,7 +29,6 @@ services:
       - rocky
     networks:
       - ansible-net
-      - db-net
 
   node-3:
     build:
@@ -41,7 +39,6 @@ services:
       - rocky
     networks:
       - ansible-net
-      - db-net
 
   node-4:
     build:
@@ -52,81 +49,6 @@ services:
       - rocky
     networks:
       - ansible-net
-      - db-net
-
-  db-1:
-    image: bitnami/postgresql:latest
-    container_name: db-1
-    profiles:
-      - postgres
-    environment:
-      POSTGRESQL_USER: admin
-      POSTGRESQL_PASSWORD: secretpassword
-      POSTGRESQL_DATABASE: appdb
-      POSTGRESQL_POSTGRES_PASSWORD: rootpassword
-      POSTGRESQL_REPLICATION_MODE: master
-      POSTGRESQL_REPLICATION_USER: repl_user
-      POSTGRESQL_REPLICATION_PASSWORD: repl_password
-    networks:
-      - ansible-net
-      - db-net
-
-  db-2:
-    image: bitnami/postgresql:latest
-    container_name: db-2
-    profiles:
-      - postgres
-    environment:
-      POSTGRESQL_USER: admin
-      POSTGRESQL_PASSWORD: secretpassword
-      POSTGRESQL_DATABASE: appdb
-      POSTGRESQL_POSTGRES_PASSWORD: rootpassword
-      POSTGRESQL_REPLICATION_MODE: slave
-      POSTGRESQL_REPLICATION_USER: repl_user
-      POSTGRESQL_REPLICATION_PASSWORD: repl_password
-      POSTGRESQL_MASTER_HOST: db-1
-      POSTGRESQL_MASTER_PORT_NUMBER: 5432
-    networks:
-      - ansible-net
-      - db-net
-
-  db-3:
-    image: bitnami/postgresql:latest
-    container_name: db-3
-    profiles:
-      - postgres
-    environment:
-      POSTGRESQL_USER: admin
-      POSTGRESQL_PASSWORD: secretpassword
-      POSTGRESQL_DATABASE: appdb
-      POSTGRESQL_POSTGRES_PASSWORD: rootpassword
-      POSTGRESQL_REPLICATION_MODE: slave
-      POSTGRESQL_REPLICATION_USER: repl_user
-      POSTGRESQL_REPLICATION_PASSWORD: repl_password
-      POSTGRESQL_MASTER_HOST: db-1
-      POSTGRESQL_MASTER_PORT_NUMBER: 5432
-    networks:
-      - ansible-net
-      - db-net
-
-  db-4:
-    image: bitnami/postgresql:latest
-    container_name: db-4
-    profiles:
-      - postgres
-    environment:
-      POSTGRESQL_USER: admin
-      POSTGRESQL_PASSWORD: secretpassword
-      POSTGRESQL_DATABASE: appdb
-      POSTGRESQL_POSTGRES_PASSWORD: rootpassword
-      POSTGRESQL_REPLICATION_MODE: slave
-      POSTGRESQL_REPLICATION_USER: repl_user
-      POSTGRESQL_REPLICATION_PASSWORD: repl_password
-      POSTGRESQL_MASTER_HOST: db-1
-      POSTGRESQL_MASTER_PORT_NUMBER: 5432
-    networks:
-      - ansible-net
-      - db-net
 
   zookeeper-1:
     image: zookeeper:3.9
@@ -198,8 +120,6 @@ services:
 
 networks:
   ansible-net:
-    driver: bridge
-  db-net:
     driver: bridge
   zk-net:
     driver: bridge

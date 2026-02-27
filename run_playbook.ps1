@@ -38,30 +38,25 @@ if ([string]::IsNullOrWhiteSpace($Playbook)) {
             Write-Host "`n--- Tear Down Menu ---" -ForegroundColor Yellow
             Write-Host "[1] All Profiles"
             Write-Host "[2] Rocky Linux (rocky)"
-            Write-Host "[3] PostgreSQL (postgres)"
-            Write-Host "[4] Zookeeper (zookeeper)"
-            Write-Host "[5] Cancel (Back to Playbooks)"
+            Write-Host "[3] Zookeeper (zookeeper)"
+            Write-Host "[4] Cancel (Back to Playbooks)"
             
             $tdSelection = Read-Host "`nSelect tear down option"
             
             switch ($tdSelection) {
                 "1" { 
                     Write-Host "Tearing down all profiles..." -ForegroundColor Red
-                    docker compose --profile rocky --profile postgres --profile zookeeper down
+                    docker compose --profile rocky --profile zookeeper down
                 }
                 "2" { 
                     Write-Host "Tearing down Rocky profile..." -ForegroundColor Red
                     docker compose --profile rocky down 
                 }
                 "3" { 
-                    Write-Host "Tearing down Postgres profile..." -ForegroundColor Red
-                    docker compose --profile postgres down 
-                }
-                "4" { 
                     Write-Host "Tearing down Zookeeper profile..." -ForegroundColor Red
                     docker compose --profile zookeeper down 
                 }
-                "5" { continue }
+                "4" { continue }
                 default { Write-Host "Invalid selection." -ForegroundColor Red }
             }
             continue # Go back to main menu after action or invalid selection
@@ -85,12 +80,10 @@ if ([string]::IsNullOrWhiteSpace($Playbook)) {
 $requiredProfiles = @()
 
 if ($Playbook -match "zookeeper") { $requiredProfiles += "zookeeper" }
-if ($Playbook -match "postgres") { $requiredProfiles += "postgres" }
 if ($Playbook -match "rocky") { $requiredProfiles += "rocky" }
 if ($Playbook -match "failover_orchestration") { $requiredProfiles += "zookeeper" }
 if ($Playbook -eq "site.yml" -or $Playbook -match "site.yml") { 
     $requiredProfiles += "rocky"
-    $requiredProfiles += "postgres" 
 }
 
 # Always ensure ansible-master is running
