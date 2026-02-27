@@ -1,6 +1,6 @@
 ---
 - name: Extract DB index for DB name mapping
-  hosts: databases
+  hosts: databases_primary
   connection: local
   gather_facts: no
   vars:

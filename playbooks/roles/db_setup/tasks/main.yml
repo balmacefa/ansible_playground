@@ -8,20 +8,20 @@
 
 - name: Ensure an application database user exists
   community.postgresql.postgresql_user:
-    db: "appdb{{ inventory_hostname | regex_replace('^db-', '') }}"
-    name: "user_{{ inventory_hostname | regex_replace('-', '_') }}"
+    db: "appdb"
+    name: "user_app"
     password: "secure_pass_123"
     login_host: "{{ inventory_hostname }}"
-    login_user: admin
-    login_password: secretpassword
+    login_user: postgres
+    login_password: rootpassword
     state: present
 
 - name: Create a test table for testing
   community.postgresql.postgresql_query:
-    db: "appdb{{ inventory_hostname | regex_replace('^db-', '') }}"
+    db: "appdb"
     login_host: "{{ inventory_hostname }}"
-    login_user: admin
-    login_password: secretpassword
+    login_user: postgres
+    login_password: rootpassword
     query: |
       CREATE TABLE IF NOT EXISTS test_data (
         id SERIAL PRIMARY KEY,
@@ -31,8 +31,8 @@
 
 - name: Insert some test data into the table
   community.postgresql.postgresql_query:
-    db: "appdb{{ inventory_hostname | regex_replace('^db-', '') }}"
+    db: "appdb"
     login_host: "{{ inventory_hostname }}"
-    login_user: admin
-    login_password: secretpassword
+    login_user: postgres
+    login_password: rootpassword
     query: "INSERT INTO test_data (node_name) VALUES ('Initialized by Ansible on {{ inventory_hostname }}')"
