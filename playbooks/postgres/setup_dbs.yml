@@ -1,10 +1,7 @@
 ---
-- name: Extract DB index for DB name mapping
+- name: Setup PostgreSQL Databases
   hosts: databases_primary
   connection: local
-  gather_facts: no
-  vars:
-    # Explicitly refer to the python interpreter on the master
-    ansible_python_interpreter: /usr/bin/python3
+  gather_facts: false
   roles:
     - db_setup
