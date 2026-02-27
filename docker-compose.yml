@@ -10,17 +10,14 @@ services:
       - ./playbooks:/playbooks
     networks:
       - ansible-net
-    depends_on:
-      - node-1
-      - node-2
-      - node-3
-      - node-4
 
   node-1:
     build:
       context: .
       dockerfile: Dockerfile.node
     container_name: node-1
+    profiles:
+      - rocky
     networks:
       - ansible-net
       - db-net
@@ -30,6 +27,8 @@ services:
       context: .
       dockerfile: Dockerfile.node
     container_name: node-2
+    profiles:
+      - rocky
     networks:
       - ansible-net
       - db-net
@@ -39,6 +38,8 @@ services:
       context: .
       dockerfile: Dockerfile.node
     container_name: node-3
+    profiles:
+      - rocky
     networks:
       - ansible-net
       - db-net
@@ -48,6 +49,8 @@ services:
       context: .
       dockerfile: Dockerfile.node
     container_name: node-4
+    profiles:
+      - rocky
     networks:
       - ansible-net
       - db-net
@@ -55,6 +58,8 @@ services:
   db-1:
     image: bitnami/postgresql:latest
     container_name: db-1
+    profiles:
+      - postgres
     environment:
       POSTGRESQL_USER: admin
       POSTGRESQL_PASSWORD: secretpassword
@@ -70,6 +75,8 @@ services:
   db-2:
     image: bitnami/postgresql:latest
     container_name: db-2
+    profiles:
+      - postgres
     environment:
       POSTGRESQL_USER: admin
       POSTGRESQL_PASSWORD: secretpassword
@@ -87,6 +94,8 @@ services:
   db-3:
     image: bitnami/postgresql:latest
     container_name: db-3
+    profiles:
+      - postgres
     environment:
       POSTGRESQL_USER: admin
       POSTGRESQL_PASSWORD: secretpassword
@@ -104,6 +113,8 @@ services:
   db-4:
     image: bitnami/postgresql:latest
     container_name: db-4
+    profiles:
+      - postgres
     environment:
       POSTGRESQL_USER: admin
       POSTGRESQL_PASSWORD: secretpassword
@@ -118,8 +129,62 @@ services:
       - ansible-net
       - db-net
 
+  zookeeper-1:
+    image: bitnami/zookeeper:latest
+    container_name: zookeeper-1
+    profiles:
+      - zookeeper
+    environment:
+      ALLOW_ANONYMOUS_LOGIN: "yes"
+      ZOO_SERVER_ID: 1
+      ZOO_SERVERS: "zookeeper-1:2888:3888::1 zookeeper-2:2888:3888::2 zookeeper-3:2888:3888::3 zookeeper-4:2888:3888:observer:4"
+    networks:
+      - ansible-net
+      - zk-net
+
+  zookeeper-2:
+    image: bitnami/zookeeper:latest
+    container_name: zookeeper-2
+    profiles:
+      - zookeeper
+    environment:
+      ALLOW_ANONYMOUS_LOGIN: "yes"
+      ZOO_SERVER_ID: 2
+      ZOO_SERVERS: "zookeeper-1:2888:3888::1 zookeeper-2:2888:3888::2 zookeeper-3:2888:3888::3 zookeeper-4:2888:3888:observer:4"
+    networks:
+      - ansible-net
+      - zk-net
+
+  zookeeper-3:
+    image: bitnami/zookeeper:latest
+    container_name: zookeeper-3
+    profiles:
+      - zookeeper
+    environment:
+      ALLOW_ANONYMOUS_LOGIN: "yes"
+      ZOO_SERVER_ID: 3
+      ZOO_SERVERS: "zookeeper-1:2888:3888::1 zookeeper-2:2888:3888::2 zookeeper-3:2888:3888::3 zookeeper-4:2888:3888:observer:4"
+    networks:
+      - ansible-net
+      - zk-net
+
+  zookeeper-4:
+    image: bitnami/zookeeper:latest
+    container_name: zookeeper-4
+    profiles:
+      - zookeeper
+    environment:
+      ALLOW_ANONYMOUS_LOGIN: "yes"
+      ZOO_SERVER_ID: 4
+      ZOO_SERVERS: "zookeeper-1:2888:3888::1 zookeeper-2:2888:3888::2 zookeeper-3:2888:3888::3 zookeeper-4:2888:3888:observer:4"
+    networks:
+      - ansible-net
+      - zk-net
+
 networks:
   ansible-net:
     driver: bridge
   db-net:
+    driver: bridge
+  zk-net:
     driver: bridge

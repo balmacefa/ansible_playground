@@ -1,0 +1,24 @@
+---
+- name: Zookeeper Day 2 Operations
+  hosts: all
+  become: yes
+  tasks:
+    - name: Check Zookeeper service status
+      environment:
+        ZOO_LOG_DIR: "/opt/bitnami/zookeeper/logs"
+      shell: "echo ruok | nc localhost 2181 || true"
+      register: zk_status
+      ignore_errors: true
+
+    - name: Display Zookeeper ruok response
+      debug:
+        msg: "Zookeeper on {{ inventory_hostname }} responded: {{ zk_status.stdout | default('Not running or port closed', true) }}"
+
+    - name: Check Zookeeper stat
+      shell: "echo stat | nc localhost 2181 || true"
+      register: zk_stat
+      ignore_errors: true
+
+    - name: Display Zookeeper Role (Leader/Follower/Observer)
+      debug:
+        msg: "Role for {{ inventory_hostname }}: {{ zk_stat.stdout | regex_search('Mode: (leader|follower|observer)') | default('Unknown role', true) }}"
