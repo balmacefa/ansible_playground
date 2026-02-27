@@ -180,6 +180,22 @@ services:
       - ansible-net
       - zk-net
 
+  zookeeper-proxy:
+    image: haproxy:latest
+    container_name: zookeeper-proxy
+    profiles:
+      - zookeeper
+    volumes:
+      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    depends_on:
+      - zookeeper-1
+      - zookeeper-2
+      - zookeeper-3
+      - zookeeper-4
+    networks:
+      - ansible-net
+      - zk-net
+
 networks:
   ansible-net:
     driver: bridge

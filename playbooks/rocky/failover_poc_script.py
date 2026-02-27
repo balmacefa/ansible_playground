@@ -9,7 +9,7 @@ from kazoo.client import KazooState
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-zk_hosts = 'zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181,zookeeper-4:2181'
+zk_hosts = 'zookeeper-proxy:2181'
 poc_path = "/failover_status"
 
 def my_listener(state):

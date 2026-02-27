@@ -1,7 +1,10 @@
----
+- import_playbook: ../zookeeper/get_leader.yml
+
 - name: Zookeeper Leader Failover POC
   hosts: localhost
   connection: local
+  vars:
+    current_leader: "{{ hostvars['localhost']['zookeeper_leader'] }}"
   tasks:
     - name: Ensure POC script is deployed to node-1
       command: ansible-playbook -i /playbooks/inventory.ini -l node-1 /playbooks/rocky/zookeeper_poc.yml
@@ -13,25 +16,14 @@
     - name: Ensure script is executable
       command: docker exec node-1 chmod +x /tmp/failover_poc.py
 
-    - name: Identify current Zookeeper Leader
-      shell: |
-        for host in zookeeper-1 zookeeper-2 zookeeper-3 zookeeper-4; do
-          if python3 -c 'import socket, sys; s=socket.create_connection(("'$host'", 2181), timeout=2); s.sendall(b"stat"); print(s.recv(1024).decode())' 2>/dev/null | grep 'Mode: leader' > /dev/null; then
-            echo $host
-            exit 0
-          fi
-        done
-      register: current_leader
-      changed_when: false
-
     - name: Fail if no leader found
       fail:
         msg: "No Zookeeper leader found! Ensure the cluster is healthy."
-      when: current_leader.stdout == ""
+      when: current_leader == "" or current_leader is not defined
 
     - name: Display current leader
       debug:
-        msg: "Current Zookeeper Leader is: {{ current_leader.stdout }}"
+        msg: "Current Zookeeper Leader is: {{ current_leader }}"
 
     - name: Start Failover POC Script on node-1 (Async)
       shell: docker exec node-1 bash -c "python3 /tmp/failover_poc.py > /tmp/failover_poc.log 2>&1 &"
@@ -44,7 +36,7 @@
         seconds: 5
 
     - name: 💥 CRASH THE LEADER 💥
-      command: "docker stop {{ current_leader.stdout }}"
+      command: "docker stop {{ current_leader }}"
       register: stop_out
 
     - name: Wait for Zookeeper recovery (15 seconds)
@@ -60,13 +52,19 @@
         var: poc_logs.stdout_lines
 
     - name: 🛠️ RECOVER THE CLUSTER 🛠️
-      command: "docker start {{ current_leader.stdout }}"
+      command: "docker start {{ current_leader }}"
       
     - name: Final Health Check
       shell: |
         for host in zookeeper-1 zookeeper-2 zookeeper-3 zookeeper-4; do
           docker exec $host bash -c "echo stat | nc localhost 2181 | grep Mode" || echo "$host is DOWN"
         done
+        # Verify proxy is routing correctly
+        if python3 -c 'import socket, sys; s=socket.create_connection(("zookeeper-proxy", 2181), timeout=2); s.sendall(b"stat"); print(s.recv(1024).decode())' 2>/dev/null | grep 'Mode' > /dev/null; then
+          echo "zookeeper-proxy: UP (routing to healthy node)"
+        else
+          echo "zookeeper-proxy: DOWN or NO HEALTHY BACKENDS"
+        fi
       register: final_status
 
     - name: Show Final Cluster Status

@@ -44,3 +44,10 @@
       debug:
         msg: "⭐⭐⭐ The Zookeeper Leader is: {{ inventory_hostname }} ⭐⭐⭐"
       when: "'Mode: leader' in zk_stat.stdout | default('')"
+
+    - name: Set leader fact on localhost
+      set_fact:
+        zookeeper_leader: "{{ inventory_hostname }}"
+      delegate_to: localhost
+      delegate_facts: true
+      when: "'Mode: leader' in zk_stat.stdout | default('')"

@@ -33,12 +33,12 @@
           from kazoo.client import KazooClient
           from kazoo.exceptions import NoNodeError
 
-          # Provide zookeeper nodes comma-separated
-          zk_hosts = 'zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181'
+          # Use the zookeeper proxy
+          zk_hosts = 'zookeeper-proxy:2181'
           
           # We check if we can reach the host first to avoid kazoo hanging indefinitely
           try:
-              s = socket.create_connection(("zookeeper-1", 2181), timeout=2)
+              s = socket.create_connection(("zookeeper-proxy", 2181), timeout=2)
               s.close()
           except Exception as e:
               print("Cannot reach zookeeper. Is it running?")
