@@ -1,0 +1,6 @@
+---
+- name: Setup applications on Rocky Linux nodes
+  hosts: nodes
+  become: yes
+  roles:
+    - common

@@ -1,0 +1,42 @@
+---
+- name: Demonstrate package installation with loop
+  ansible.builtin.dnf:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - vim
+    - wget
+    - nano
+    - git
+  when: ansible_os_family == "RedHat"
+
+- name: Create a dummy config file from a template to demonstrate handlers
+  ansible.builtin.copy:
+    dest: /etc/dummy.conf
+    content: |
+      # Managed by Ansible
+      NODE_NAME={{ inventory_hostname }}
+      ENVIRONMENT=playground
+    mode: '0644'
+  notify: Restart dummy service
+
+- name: Demonstrate block, rescue, and always (error handling)
+  block:
+    - name: Try to read a file that might not exist
+      ansible.builtin.command: cat /tmp/nonexistentfile.txt
+      register: cat_result
+    - name: This won't run if the above fails
+      ansible.builtin.debug:
+        msg: "File was read successfully!"
+  rescue:
+    - name: Catch the error
+      ansible.builtin.debug:
+        msg: "Caught an error trying to read the file. Moving on."
+  always:
+    - name: This always runs
+      ansible.builtin.debug:
+        msg: "Finished block execution."
+
+- name: Include a secondary task file conditionally
+  ansible.builtin.include_tasks: extra_setup.yml
+  when: inventory_hostname == "node-1"

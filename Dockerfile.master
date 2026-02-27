@@ -1,0 +1,21 @@
+FROM rockylinux:9
+
+# Install epel-release, ansible, ssh clients, python-psycopg2 (for postgres modules)
+RUN dnf install -y epel-release && \
+    dnf install -y ansible-core openssh-clients sshpass python3 python3-pip python3-devel gcc postgresql-devel && \
+    pip3 install psycopg2-binary && \
+    ansible-galaxy collection install community.postgresql
+
+# Generate SSH key for the master
+RUN mkdir -p /root/.ssh && \
+    ssh-keygen -t rsa -N "" -f /root/.ssh/id_rsa && \
+    echo "Host *" > /root/.ssh/config && \
+    echo "    StrictHostKeyChecking no" >> /root/.ssh/config && \
+    chmod 600 /root/.ssh/config
+
+COPY master-entrypoint.sh /master-entrypoint.sh
+RUN chmod +x /master-entrypoint.sh
+
+WORKDIR /playbooks
+
+CMD ["/master-entrypoint.sh"]

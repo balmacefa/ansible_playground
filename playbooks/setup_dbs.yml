@@ -1,0 +1,10 @@
+---
+- name: Extract DB index for DB name mapping
+  hosts: databases
+  connection: local
+  gather_facts: no
+  vars:
+    # Explicitly refer to the python interpreter on the master
+    ansible_python_interpreter: /usr/bin/python3
+  roles:
+    - db_setup

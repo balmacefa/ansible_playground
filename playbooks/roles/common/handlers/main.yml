@@ -1,0 +1,4 @@
+---
+- name: Restart dummy service
+  ansible.builtin.debug:
+    msg: "Pretending to restart dummy service on {{ inventory_hostname }}"
