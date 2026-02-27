@@ -130,53 +130,53 @@ services:
       - db-net
 
   zookeeper-1:
-    image: bitnami/zookeeper:latest
+    image: zookeeper:3.9
     container_name: zookeeper-1
     profiles:
       - zookeeper
     environment:
-      ALLOW_ANONYMOUS_LOGIN: "yes"
-      ZOO_SERVER_ID: 1
-      ZOO_SERVERS: "zookeeper-1:2888:3888::1 zookeeper-2:2888:3888::2 zookeeper-3:2888:3888::3 zookeeper-4:2888:3888:observer:4"
+      ZOO_MY_ID: 1
+      ZOO_SERVERS: server.1=zookeeper-1:2888:3888;2181 server.2=zookeeper-2:2888:3888;2181 server.3=zookeeper-3:2888:3888;2181 server.4=zookeeper-4:2888:3888:observer;2181
+      ZOO_4LW_COMMANDS_WHITELIST: "*"
     networks:
       - ansible-net
       - zk-net
 
   zookeeper-2:
-    image: bitnami/zookeeper:latest
+    image: zookeeper:3.9
     container_name: zookeeper-2
     profiles:
       - zookeeper
     environment:
-      ALLOW_ANONYMOUS_LOGIN: "yes"
-      ZOO_SERVER_ID: 2
-      ZOO_SERVERS: "zookeeper-1:2888:3888::1 zookeeper-2:2888:3888::2 zookeeper-3:2888:3888::3 zookeeper-4:2888:3888:observer:4"
+      ZOO_MY_ID: 2
+      ZOO_SERVERS: server.1=zookeeper-1:2888:3888;2181 server.2=zookeeper-2:2888:3888;2181 server.3=zookeeper-3:2888:3888;2181 server.4=zookeeper-4:2888:3888:observer;2181
+      ZOO_4LW_COMMANDS_WHITELIST: "*"
     networks:
       - ansible-net
       - zk-net
 
   zookeeper-3:
-    image: bitnami/zookeeper:latest
+    image: zookeeper:3.9
     container_name: zookeeper-3
     profiles:
       - zookeeper
     environment:
-      ALLOW_ANONYMOUS_LOGIN: "yes"
-      ZOO_SERVER_ID: 3
-      ZOO_SERVERS: "zookeeper-1:2888:3888::1 zookeeper-2:2888:3888::2 zookeeper-3:2888:3888::3 zookeeper-4:2888:3888:observer:4"
+      ZOO_MY_ID: 3
+      ZOO_SERVERS: server.1=zookeeper-1:2888:3888;2181 server.2=zookeeper-2:2888:3888;2181 server.3=zookeeper-3:2888:3888;2181 server.4=zookeeper-4:2888:3888:observer;2181
+      ZOO_4LW_COMMANDS_WHITELIST: "*"
     networks:
       - ansible-net
       - zk-net
 
   zookeeper-4:
-    image: bitnami/zookeeper:latest
+    image: zookeeper:3.9
     container_name: zookeeper-4
     profiles:
       - zookeeper
     environment:
-      ALLOW_ANONYMOUS_LOGIN: "yes"
-      ZOO_SERVER_ID: 4
-      ZOO_SERVERS: "zookeeper-1:2888:3888::1 zookeeper-2:2888:3888::2 zookeeper-3:2888:3888::3 zookeeper-4:2888:3888:observer:4"
+      ZOO_MY_ID: 4
+      ZOO_SERVERS: server.1=zookeeper-1:2888:3888;2181 server.2=zookeeper-2:2888:3888;2181 server.3=zookeeper-3:2888:3888;2181 server.4=zookeeper-4:2888:3888:observer;2181
+      ZOO_4LW_COMMANDS_WHITELIST: "*"
     networks:
       - ansible-net
       - zk-net

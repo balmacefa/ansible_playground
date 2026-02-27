@@ -1,0 +1,41 @@
+---
+- name: Zookeeper Day 2 Operations
+  hosts: zookeeper
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Check Zookeeper service status
+      shell: |
+        python3 -c '
+        import socket, sys
+        try:
+            s = socket.create_connection(("{{ inventory_hostname }}", 2181), timeout=2)
+            s.sendall(b"ruok")
+            print(s.recv(1024).decode().strip())
+        except Exception as e:
+            print("Not running or port closed")
+        '
+      register: zk_status
+      changed_when: false
+
+    - name: Display Zookeeper ruok response
+      debug:
+        msg: "Zookeeper on {{ inventory_hostname }} responded: {{ zk_status.stdout }}"
+
+    - name: Check Zookeeper stat
+      shell: |
+        python3 -c '
+        import socket, sys
+        try:
+            s = socket.create_connection(("{{ inventory_hostname }}", 2181), timeout=2)
+            s.sendall(b"stat")
+            print(s.recv(1024).decode().strip())
+        except Exception as e:
+            print("Not running or port closed")
+        '
+      register: zk_stat
+      changed_when: false
+
+    - name: Display Zookeeper Role (Leader/Follower/Observer)
+      debug:
+        msg: "Role for {{ inventory_hostname }}: {{ zk_stat.stdout | regex_search('Mode: (leader|follower|observer)') | default('Unknown role', true) }}"
