@@ -6,15 +6,15 @@
   vars:
     current_leader: "{{ hostvars['localhost']['zookeeper_leader'] }}"
   tasks:
-    - name: Ensure POC script is deployed to node-1
-      command: ansible-playbook -i /playbooks/inventory.ini -l node-1 /playbooks/rocky/zookeeper_poc.yml
+    - name: Ensure POC script is deployed to first node
+      command: "ansible-playbook -i /playbooks/inventory.ini -l {{ groups['nodes'][0] }} /playbooks/rocky/zookeeper_poc.yml"
       register: deploy_out
 
-    - name: Deploy failover script to node-1
-      command: scp /playbooks/rocky/failover_poc_script.py node-1:/tmp/failover_poc.py
+    - name: Deploy failover script to first node
+      command: "scp /playbooks/rocky/failover_poc_script.py {{ groups['nodes'][0] }}:/tmp/failover_poc.py"
 
     - name: Ensure script is executable
-      command: docker exec node-1 chmod +x /tmp/failover_poc.py
+      command: "docker exec {{ groups['nodes'][0] }} chmod +x /tmp/failover_poc.py"
 
     - name: Fail if no leader found
       fail:
@@ -25,8 +25,8 @@
       debug:
         msg: "Current Zookeeper Leader is: {{ current_leader }}"
 
-    - name: Start Failover POC Script on node-1 (Async)
-      shell: docker exec node-1 bash -c "python3 /tmp/failover_poc.py > /tmp/failover_poc.log 2>&1 &"
+    - name: Start Failover POC Script on first node (Async)
+      shell: "docker exec {{ groups['nodes'][0] }} bash -c 'python3 /tmp/failover_poc.py > /tmp/failover_poc.log 2>&1 &'"
       async: 60
       poll: 0
       register: script_async
@@ -43,8 +43,8 @@
       pause:
         seconds: 15
 
-    - name: Collect POC logs from node-1
-      command: docker exec node-1 cat /tmp/failover_poc.log
+    - name: Collect POC logs from first node
+      command: "docker exec {{ groups['nodes'][0] }} cat /tmp/failover_poc.log"
       register: poc_logs
 
     - name: Display POC Interaction Logs
@@ -56,14 +56,14 @@
       
     - name: Final Health Check
       shell: |
-        for host in zookeeper-1 zookeeper-2 zookeeper-3 zookeeper-4; do
-          docker exec $host bash -c "echo stat | nc localhost 2181 | grep Mode" || echo "$host is DOWN"
-        done
+        {% for host in groups['zookeeper'] %}
+        docker exec {{ host }} bash -c "echo stat | nc localhost {{ zookeeper_client_port | default(2181) }} | grep Mode" || echo "{{ host }} is DOWN"
+        {% endfor %}
         # Verify proxy is routing correctly
-        if python3 -c 'import socket, sys; s=socket.create_connection(("zookeeper-proxy", 2181), timeout=2); s.sendall(b"stat"); print(s.recv(1024).decode())' 2>/dev/null | grep 'Mode' > /dev/null; then
-          echo "zookeeper-proxy: UP (routing to healthy node)"
+        if python3 -c 'import socket, sys; s=socket.create_connection(("{{ zookeeper_proxy_name | default("zookeeper-proxy") }}", {{ zookeeper_client_port | default(2181) }}), timeout=2); s.sendall(b"stat"); print(s.recv(1024).decode())' 2>/dev/null | grep 'Mode' > /dev/null; then
+          echo "{{ zookeeper_proxy_name | default("zookeeper-proxy") }}: UP (routing to healthy node)"
         else
-          echo "zookeeper-proxy: DOWN or NO HEALTHY BACKENDS"
+          echo "{{ zookeeper_proxy_name | default("zookeeper-proxy") }}: DOWN or NO HEALTHY BACKENDS"
         fi
       register: final_status
 

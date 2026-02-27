@@ -1,0 +1,31 @@
+- name: Check Zookeeper service status (ruok)
+  shell: |
+    python3 -c '
+    import socket, sys
+    try:
+        s = socket.create_connection(("{{ inventory_hostname }}", {{ zookeeper_client_port | default(2181) }}), timeout=2)
+        s.sendall(b"ruok")
+        print(s.recv(1024).decode().strip())
+    except Exception as e:
+        print("Not running or port closed")
+    '
+  register: zk_status
+  changed_when: false
+
+- name: Check Zookeeper stat
+  shell: |
+    python3 -c '
+    import socket, sys
+    try:
+        s = socket.create_connection(("{{ inventory_hostname }}", {{ zookeeper_client_port | default(2181) }}), timeout=2)
+        s.sendall(b"stat")
+        print(s.recv(1024).decode().strip())
+    except Exception as e:
+        print("Not running or port closed")
+    '
+  register: zk_stat
+  changed_when: false
+
+- name: Parse Zookeeper Role
+  set_fact:
+    zookeeper_role: "{{ zk_stat.stdout | regex_search('Mode: (leader|follower|observer)') | default('Mode: unknown', true) | replace('Mode: ', '') }}"
