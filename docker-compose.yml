@@ -1,8 +1,7 @@
 services:
   ansible-master:
     build:
-      context: .
-      dockerfile: Dockerfile.master
+      context: ./docker/master/
     container_name: ansible-master
     volumes:
       - ./playbooks:/playbooks
@@ -12,8 +11,7 @@ services:
 
   node-1:
     build:
-      context: .
-      dockerfile: Dockerfile.node
+      context: ./docker/node/
     container_name: node-1
     profiles:
       - rocky
@@ -22,8 +20,7 @@ services:
 
   node-2:
     build:
-      context: .
-      dockerfile: Dockerfile.node
+      context: ./docker/node/
     container_name: node-2
     profiles:
       - rocky
@@ -32,8 +29,7 @@ services:
 
   node-3:
     build:
-      context: .
-      dockerfile: Dockerfile.node
+      context: ./docker/node/
     container_name: node-3
     profiles:
       - rocky
@@ -42,8 +38,7 @@ services:
 
   node-4:
     build:
-      context: .
-      dockerfile: Dockerfile.node
+      context: ./docker/node/
     container_name: node-4
     profiles:
       - rocky
@@ -108,7 +103,7 @@ services:
     profiles:
       - zookeeper
     volumes:
-      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+      - ./docker/haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
     depends_on:
       - zookeeper-1
       - zookeeper-2

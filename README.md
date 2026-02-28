@@ -79,7 +79,7 @@ docker exec -it ansible-master bash -c "ansible-playbook -i inventory.ini site.y
 
 This playground includes several functional playbooks demonstrating advanced Ansible capabilities and infrastructure orchestration. 
 
-For a complete breakdown of each playbook and its specific requirements, refer to the [PLAYBOOKS.md](./PLAYBOOKS.md) document. Key highlights include:
+For a complete breakdown of each playbook and its specific requirements, refer to the [docs/PLAYBOOKS.md](./docs/PLAYBOOKS.md) document. Key highlights include:
 
 *   **Node Setup (`rocky/setup_nodes.yml`)**: Applies basic OS configurations.
 *   **OS Patching (`common/patching.yml`)**: OS-level package upgrades with automated reboot handling.
