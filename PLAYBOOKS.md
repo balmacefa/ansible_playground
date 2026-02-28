@@ -109,3 +109,37 @@ docker exec -it ansible-master bash -c "ansible-playbook -i inventory.ini site.y
  # Or directly via docker
  docker exec -it ansible-master bash -c "ansible-playbook -i inventory.ini rocky/failover_orchestration.yml"
  ```
+
+---
+ 
+ ## 8. Zookeeper Ephemeral Nodes Demo
+ **File location:** `playbooks/rocky/zookeeper_ephemeral_demo.yml`
+ **Purpose:** Demonstrates how ephemeral nodes interact with a Zookeeper cluster. An observer node watches for changes while worker nodes register and randomly drop out, showing how Zookeeper notifies the observer without the need for constant polling.
+ **Requirements:** Both `rocky` and `zookeeper` docker profiles must be running.
+ 
+ **How to trigger:**
+ ```bash
+ # Using the helper script
+ ./run_playbook.sh rocky/zookeeper_ephemeral_demo.yml   # Linux/macOS
+ .\run_playbook.ps1 rocky/zookeeper_ephemeral_demo.yml  # Windows
+ 
+ # Or directly via docker
+ docker exec -it ansible-master bash -c "ansible-playbook -i inventory.ini rocky/zookeeper_ephemeral_demo.yml"
+ ```
+
+---
+
+ ## 9. Zookeeper Ephemeral Failover
+ **File location:** `playbooks/rocky/zookeeper_ephemeral_failover.yml`
+ **Purpose:** Demonstrates Zookeeper ephemeral behavior during a leader election failover. Orchestrator crashes the leader, and nodes reconnect automatically through the zookeeper proxy without dropping out of the cluster.
+ **Requirements:** Both `rocky` and `zookeeper` docker profiles must be running.
+ 
+ **How to trigger:**
+ ```bash
+ # Using the helper script
+ ./run_playbook.sh rocky/zookeeper_ephemeral_failover.yml   # Linux/macOS
+ .\run_playbook.ps1 rocky/zookeeper_ephemeral_failover.yml  # Windows
+ 
+ # Or directly via docker
+ docker exec -it ansible-master bash -c "ansible-playbook -i inventory.ini rocky/zookeeper_ephemeral_failover.yml"
+ ```

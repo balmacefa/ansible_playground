@@ -13,7 +13,6 @@ if ([string]::IsNullOrWhiteSpace($Playbook)) {
         $playbookFiles = Get-ChildItem -Path $playbooksPath -Filter "*.yml" -Recurse | Where-Object { 
             $_.FullName -notmatch "group_vars" -and 
             $_.FullName -notmatch "roles" -and
-            $_.FullName -notmatch "common" -and
             $_.FullName -notmatch "tasks"  # Exclude task fragments
         } | Select-Object -ExpandProperty FullName
 

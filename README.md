@@ -1,8 +1,20 @@
 # Ansible Docker Playground
 
-This project provides a comprehensive, multi-node Docker-based development environment for writing and testing Ansible playbooks locally. It simulates a real-world infrastructure with an Ansible control node (master), Rocky Linux application nodes, a PostgreSQL database cluster, and a Zookeeper ensemble.
+This project provides a comprehensive, multi-node Docker-based development environment for writing and testing Ansible playbooks locally. It simulates a real-world infrastructure with an Ansible control node (master), Rocky Linux application nodes, and a Zookeeper ensemble.
 
-## Architecture
+## Executive Summary (For Management)
+
+This project serves as a local testing ground and demonstration environment for modern IT automation and high availability concepts. It is designed to simulate a real-world enterprise infrastructure in a safe, controlled way.
+
+**Key Business Values:**
+*   **Risk-Free Testing:** Allows engineers to test complex infrastructure changes, OS upgrades, and failover scenarios in a safe, isolated environment before applying them to production systems.
+*   **Automated Operations:** Showcases the power of Ansible to configure servers, apply security patches, and manage applications automatically, significantly reducing manual effort and human error.
+*   **High Availability & Resilience:** Demonstrates how modern architectures recover automatically from server crashes. Utilizing tools like Zookeeper, the system can automatically reroute traffic and maintain operations without human intervention.
+*   **Training & Onboarding:** Provides a hands-on sandbox for new team members to learn about containerization, automation, and distributed systems safely.
+
+In short, this playground helps the engineering team build more reliable systems, deploy faster, and validate disaster recovery plans with zero risk to live business operations.
+
+## Technical Architecture
 
 The environment spins up multiple containers within dedicated Docker networks:
 
@@ -70,6 +82,7 @@ This playground includes several functional playbooks demonstrating advanced Ans
 For a complete breakdown of each playbook and its specific requirements, refer to the [PLAYBOOKS.md](./PLAYBOOKS.md) document. Key highlights include:
 
 *   **Node Setup (`rocky/setup_nodes.yml`)**: Applies basic OS configurations.
-*   **Node Setup (`rocky/setup_nodes.yml`)**: Applies basic OS configurations.
 *   **OS Patching (`common/patching.yml`)**: OS-level package upgrades with automated reboot handling.
+*   **Zookeeper Ephemeral Nodes Demo (`rocky/zookeeper_ephemeral_demo.yml`)**: Demonstrates how ephemeral nodes interact with a Zookeeper cluster and how they act as a service discovery mechanism.
+*   **Zookeeper Ephemeral Failover (`rocky/zookeeper_ephemeral_failover.yml`)**: Demonstrates how Zookeeper ephemeral nodes maintain their sessions through a proxy during a Zookeeper leader failover.
 *   **Zookeeper Failover Orchestration (`rocky/failover_orchestration.yml`)**: A complex Proof of Concept (POC) that demonstrates application resilience by identifying the Zookeeper leader, crashing it, and verifying that Rocky Linux application nodes seamlessly recover and reconnect via the Zookeeper proxy.

@@ -1,6 +1,6 @@
 ---
 - name: OS Patching and Updates
-  hosts: all
+  hosts: nodes
   become: yes
   tasks:
     - name: Update apt packages (Debian/Ubuntu)
@@ -8,12 +8,24 @@
         update_cache: yes
         upgrade: dist
       when: ansible_os_family == "Debian"
+      register: apt_update_result
+
+    - name: Show upgraded apt packages
+      debug:
+        var: apt_update_result.stdout_lines
+      when: apt_update_result.changed | default(false)
 
     - name: Update yum packages (RedHat/CentOS/Rocky)
       yum:
         name: '*'
         state: latest
       when: ansible_os_family == "RedHat"
+      register: yum_update_result
+
+    - name: Show upgraded yum packages
+      debug:
+        var: yum_update_result.results
+      when: yum_update_result.changed | default(false)
 
     - name: Check if reboot is required (Debian/Ubuntu)
       stat:
@@ -51,3 +63,8 @@
       when:
         - ansible_os_family == "RedHat"
         - needs_restarting.rc is defined and needs_restarting.rc == 1
+    - name: Show package update summary
+      debug:
+        msg: |
+          Apt updates: {{ apt_update_result.changed | default(false) | ternary('packages were upgraded', 'no changes') }}
+          Yum updates: {{ yum_update_result.changed | default(false) | ternary('packages were upgraded', 'no changes') }}
