@@ -3,18 +3,9 @@ FROM rockylinux:9
 # Install epel-release, ansible, ssh clients
 RUN dnf install -y epel-release yum-utils && \
     yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo && \
-    dnf install -y ansible-core openssh-clients sshpass python3 python3-pip python3-devel gcc docker-ce-cli
-
-# Generate SSH key for the master
-RUN mkdir -p /root/.ssh && \
-    ssh-keygen -t rsa -N "" -f /root/.ssh/id_rsa && \
-    echo "Host *" > /root/.ssh/config && \
-    echo "    StrictHostKeyChecking no" >> /root/.ssh/config && \
-    chmod 600 /root/.ssh/config
-
-COPY master-entrypoint.sh /master-entrypoint.sh
-RUN chmod +x /master-entrypoint.sh
+    dnf install -y ansible-core openssh-clients python3 python3-pip python3-devel gcc docker-ce-cli && \
+    dnf clean all
 
 WORKDIR /playbooks
 
-CMD ["/master-entrypoint.sh"]
+CMD ["tail", "-f", "/dev/null"]

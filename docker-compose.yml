@@ -1,47 +1,43 @@
 services:
+  key-generator:
+    image: alpine
+    container_name: key-generator
+    volumes:
+      - ansible-keys:/root/.ssh
+    command: >
+      sh -c " apk add --no-cache openssh-client && if [ ! -f /root/.ssh/id_rsa ]; then
+        echo 'Generating SSH keys for secure communication...' &&
+        ssh-keygen -t rsa -N '' -f /root/.ssh/id_rsa &&
+        cp /root/.ssh/id_rsa.pub /root/.ssh/authorized_keys &&
+        echo 'Host *' > /root/.ssh/config &&
+        echo '    StrictHostKeyChecking no' >> /root/.ssh/config &&
+        chmod 600 /root/.ssh/*;
+      fi "
+
   ansible-master:
     build:
       context: ./docker/master/
     container_name: ansible-master
+    depends_on:
+      key-generator:
+        condition: service_completed_successfully
     volumes:
       - ./playbooks:/playbooks
       - /var/run/docker.sock:/var/run/docker.sock
+      - ansible-keys:/root/.ssh
     networks:
       - ansible-net
 
-  node-1:
+  node:
     build:
       context: ./docker/node/
-    container_name: node-1
     profiles:
       - rocky
-    networks:
-      - ansible-net
-
-  node-2:
-    build:
-      context: ./docker/node/
-    container_name: node-2
-    profiles:
-      - rocky
-    networks:
-      - ansible-net
-
-  node-3:
-    build:
-      context: ./docker/node/
-    container_name: node-3
-    profiles:
-      - rocky
-    networks:
-      - ansible-net
-
-  node-4:
-    build:
-      context: ./docker/node/
-    container_name: node-4
-    profiles:
-      - rocky
+    depends_on:
+      key-generator:
+        condition: service_completed_successfully
+    volumes:
+      - ansible-keys:/root/.ssh
     networks:
       - ansible-net
 
@@ -112,6 +108,10 @@ services:
     networks:
       - ansible-net
       - zk-net
+
+volumes:
+  ansible-keys:
+
 
 networks:
   ansible-net:

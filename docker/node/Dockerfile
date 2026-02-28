@@ -4,15 +4,13 @@ FROM rockylinux:9
 RUN dnf install -y openssh-server python3 shadow-utils sudo && \
     dnf clean all
 
-# Set root password to 'root' for initial ssh-copy-id from master
-RUN echo "root:root" | chpasswd
-
 # Generate host keys
 RUN ssh-keygen -A
 
-# Allow root login via SSH configuration
-RUN echo "PermitRootLogin yes" >> /etc/ssh/sshd_config && \
-    echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config
+# Allow root login via SSH configuration using keys only
+RUN echo "PermitRootLogin prohibit-password" >> /etc/ssh/sshd_config && \
+    echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config && \
+    echo "PasswordAuthentication no" >> /etc/ssh/sshd_config
 
 EXPOSE 22
 

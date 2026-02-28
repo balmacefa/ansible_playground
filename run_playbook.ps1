@@ -1,6 +1,9 @@
 param (
     [Parameter(Mandatory=$false)]
-    [string]$Playbook
+    [string]$Playbook,
+    
+    [Parameter(Mandatory=$false)]
+    [int]$NodesCount = 4
 )
 
 # If no playbook is provided, show interactive menu
@@ -25,13 +28,24 @@ if ([string]::IsNullOrWhiteSpace($Playbook)) {
         for ($i = 0; $i -lt $relativePlaybooks.Count; $i++) {
             Write-Host ("[{0}] {1}" -f ($i + 1), $relativePlaybooks[$i])
         }
+        Write-Host "[N] Set Node Count (Current: $NodesCount)" -ForegroundColor Green
         Write-Host "[T] Tear Down Project" -ForegroundColor Yellow
         Write-Host "[Q] Quit" -ForegroundColor Red
 
         # Get user selection
-        $selection = Read-Host "`nSelect a playbook number, 'T' for Tear Down, or 'Q' to Quit"
+        $selection = Read-Host "`nSelect a playbook number, 'N' for Node Count, 'T' for Tear Down, or 'Q' to Quit"
         
         if ($selection -eq "Q") { return }
+        
+        if ($selection -eq "N") {
+            $nodesInput = Read-Host "`nEnter the new number of Rocky nodes"
+            if (-not [string]::IsNullOrWhiteSpace($nodesInput) -and [int]::TryParse($nodesInput, [ref]$NodesCount) -and $NodesCount -gt 0) {
+                Write-Host "Node count updated to $NodesCount." -ForegroundColor Green
+            } else {
+                Write-Host "Invalid input. Node count remains $NodesCount." -ForegroundColor Red
+            }
+            continue
+        }
         
         if ($selection -eq "T") {
             Write-Host "`n--- Tear Down Menu ---" -ForegroundColor Yellow
@@ -93,17 +107,27 @@ if ($masterStatus -ne "true") {
     docker compose up -d ansible-master
 }
 
+# Dynamically generate inventory.ini
+$inventoryContent = "[nodes]`n"
+for ($n = 1; $n -le $NodesCount; $n++) {
+    $inventoryContent += "ansible-node-$n`n"
+}
+$inventoryContent += "`n[zookeeper]`nzookeeper-1`nzookeeper-2`nzookeeper-3`nzookeeper-4`n`n[zookeeper_nodes]`nzookeeper-1`nzookeeper-2`nzookeeper-3`nzookeeper-4`n"
+Set-Content -Path "playbooks/inventory.ini" -Value $inventoryContent
+
 # Ensure required profiles are running
 foreach ($profile in ($requiredProfiles | Select-Object -Unique)) {
     Write-Host "Ensuring profile '$profile' is active..." -ForegroundColor Cyan
-    docker compose --profile $profile up -d
+    if ($profile -eq "rocky") {
+        docker compose --profile rocky up --scale node=$NodesCount -d
+    } else {
+        docker compose --profile $profile up -d
+    }
 }
 
-# Ensure SSH connectivity (especially if profiles were just started)
+# Ensure SSH connectivity (Keys are shared via Docker volume)
 if ($requiredProfiles -contains "rocky" -or $Playbook -eq "site.yml" -or $Playbook -match "site.yml") {
-    Write-Host "Ensuring SSH connectivity to Rocky nodes..." -ForegroundColor Cyan
-    docker exec ansible-master bash -c "for i in {1..4}; do sshpass -p 'root' ssh-copy-id -o StrictHostKeyChecking=no root@node-`$i || true; done"
+    Write-Host "SSH connectivity secured via shared keys volume." -ForegroundColor Cyan
 }
 
-Write-Host "Running playbook: $Playbook inside ansible-master container..." -ForegroundColor Green
-docker exec -e ANSIBLE_CONFIG=/playbooks/ansible.cfg -it ansible-master ansible-playbook -i inventory.ini "$Playbook"
+docker exec -e ANSIBLE_CONFIG=/playbooks/ansible.cfg ansible-master ansible-playbook -i inventory.ini "$Playbook"
