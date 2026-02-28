@@ -1,0 +1,127 @@
+---
+- name: Zookeeper Ephemeral Nodes Demonstration
+  hosts: nodes
+  become: yes
+  tasks:
+    - name: Ensure python3 dependencies and gcc are installed
+      dnf:
+        name:
+          - python3-pip
+          - python3-setuptools
+          - gcc
+          - python3-devel
+        state: present
+
+    - name: Ensure kazoo python library is installed
+      pip:
+        name: kazoo
+        executable: pip3
+    - name: Create the demo Python script
+      copy:
+        dest: /tmp/zk_ephemeral_demo.py
+        mode: '0755'
+        content: |
+          #!/usr/bin/env python3
+          import sys
+          import time
+          import platform
+          from kazoo.client import KazooClient
+          from kazoo.protocol.states import EventType
+
+          if len(sys.argv) < 3:
+              print("Usage: python3 zk_ephemeral_demo.py <observer|worker> <duration>")
+              sys.exit(1)
+
+          role = sys.argv[1]
+          duration = int(sys.argv[2])
+          hostname = platform.node()
+          base_path = "/ephemeral_demo"
+
+          zk = KazooClient(hosts='zookeeper-proxy:2181')
+          zk.start()
+          zk.ensure_path(base_path)
+
+          if role == 'observer':
+              print(f"[{hostname}] OBSERVER started for {duration} seconds.")
+              print(f"[{hostname}] Watching for nodes joining or leaving the cluster...")
+              
+              @zk.ChildrenWatch(base_path)
+              def watch_children(children):
+                  print(f"[{time.strftime('%H:%M:%S')}] EVENT: Active cluster nodes right now: {children}")
+
+              time.sleep(duration)
+              print(f"[{hostname}] OBSERVER test finished.")
+
+          elif role == 'worker':
+              my_path = f"{base_path}/{hostname}"
+              if zk.exists(my_path):
+                  zk.delete(my_path)
+              
+              print(f"[{hostname}] WORKER online. Registering ephemeral presence at {my_path}")
+              zk.create(my_path, ephemeral=True)
+              
+              print(f"[{hostname}] Simulating work for {duration} seconds...")
+              time.sleep(duration)
+              
+              print(f"[{hostname}] ERROR: Simulating an unexpected crash. Disconnecting abruptly!")
+
+          zk.stop()
+
+    - name: Clean up any old demo state
+      shell: |
+        python3 -c "from kazoo.client import KazooClient; zk=KazooClient('zookeeper-proxy:2181'); zk.start(); zk.delete('/ephemeral_demo', recursive=True) if zk.exists('/ephemeral_demo') else None; zk.stop()"
+      run_once: true
+      ignore_errors: yes
+
+    - name: Start OBSERVER on node-1 (watches for 25 seconds)
+      command: python3 /tmp/zk_ephemeral_demo.py observer 25
+      async: 30
+      poll: 0
+      register: observer_job
+      when: inventory_hostname == 'node-1'
+
+    - name: Give observer a moment to initialize the watch
+      pause:
+        seconds: 2
+
+    - name: Start WORKER on node-2 (dies after 5 seconds)
+      command: python3 /tmp/zk_ephemeral_demo.py worker 5
+      async: 30
+      poll: 0
+      when: inventory_hostname == 'node-2'
+
+    - name: Start WORKER on node-3 (dies after 10 seconds)
+      command: python3 /tmp/zk_ephemeral_demo.py worker 10
+      async: 30
+      poll: 0
+      when: inventory_hostname == 'node-3'
+
+    - name: Start WORKER on node-4 (dies after 15 seconds)
+      command: python3 /tmp/zk_ephemeral_demo.py worker 15
+      async: 30
+      poll: 0
+      when: inventory_hostname == 'node-4'
+
+    - name: Wait for Observer to finish and gather its logs
+      async_status:
+        jid: "{{ observer_job.ansible_job_id }}"
+      register: observer_result
+      until: observer_result.finished
+      retries: 30
+      delay: 1
+      when: inventory_hostname == 'node-1'
+
+    - name: "=== EPHEMERAL NODES DEMO RESULTS ==="
+      debug:
+        msg: "{{ observer_result.stdout_lines }}"
+      when: inventory_hostname == 'node-1'
+
+    - name: "Key Takeaway"
+      run_once: true
+      debug:
+        msg: |
+          As you can see in the log above:
+          When node-2, node-3, and node-4 "crashed", their ephemeral nodes instantly disappeared.
+          The Observer (node-1) didn't have to constantly check if they were alive.
+          Zookeeper pushed an event notification immediately when their connections dropped.
+          This is exactly how Service Discovery works in systems like Kafka or Hadoop!

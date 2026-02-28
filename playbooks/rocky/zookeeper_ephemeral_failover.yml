@@ -1,0 +1,178 @@
+---
+- import_playbook: ../zookeeper/get_leader.yml
+
+- name: Zookeeper Ephemeral Nodes Failover Demonstration
+  hosts: nodes
+  become: yes
+  vars:
+    zk_leader: "{{ hostvars['localhost']['zookeeper_leader'] }}"
+  tasks:
+    - name: Fail if no Zookeeper leader was found
+      fail:
+        msg: "No Zookeeper leader found! The get_leader playbook failed to identify one."
+      when: zk_leader == "" or zk_leader is not defined
+
+    - name: Ensure python3 dependencies and gcc are installed
+      dnf:
+        name:
+          - python3-pip
+          - python3-setuptools
+          - gcc
+          - python3-devel
+        state: present
+
+    - name: Ensure kazoo python library is installed
+      pip:
+        name: kazoo
+        executable: pip3
+
+    - name: Create the demo Python script
+      copy:
+        dest: /tmp/zk_ephemeral_demo.py
+        mode: '0755'
+        content: |
+          #!/usr/bin/env python3
+          import sys
+          import time
+          import platform
+          from kazoo.client import KazooClient
+          from kazoo.protocol.states import EventType
+
+          if len(sys.argv) < 3:
+              print("Usage: python3 zk_ephemeral_demo.py <observer|worker> <duration>")
+              sys.exit(1)
+
+          role = sys.argv[1]
+          duration = int(sys.argv[2])
+          hostname = platform.node()
+          base_path = "/ephemeral_failover_demo"
+
+          zk = KazooClient(hosts='zookeeper-proxy:2181')
+          zk.start()
+          zk.ensure_path(base_path)
+
+          def log(msg):
+              print(f"[{time.strftime('%H:%M:%S')}] {msg}")
+
+          if role == 'observer':
+              log(f"[{hostname}] OBSERVER started for {duration} seconds.")
+              log(f"[{hostname}] Watching for nodes joining or leaving the cluster...")
+              
+              @zk.ChildrenWatch(base_path)
+              def watch_children(children):
+                  log(f"[{hostname}] EVENT: Active cluster nodes right now: {children}")
+
+              time.sleep(duration)
+              log(f"[{hostname}] OBSERVER test finished.")
+
+          elif role == 'worker':
+              my_path = f"{base_path}/{hostname}"
+              if zk.exists(my_path):
+                  zk.delete(my_path)
+              
+              log(f"[{hostname}] WORKER online. Registering ephemeral presence at {my_path}")
+              zk.create(my_path, ephemeral=True)
+              
+              log(f"[{hostname}] Simulating work for {duration} seconds...")
+              time.sleep(duration)
+              
+              log(f"[{hostname}] Worker finished successfully.")
+
+          zk.stop()
+
+    - name: Clean up any old demo state
+      shell: |
+        python3 -c "from kazoo.client import KazooClient; zk=KazooClient('zookeeper-proxy:2181'); zk.start(); zk.delete('/ephemeral_failover_demo', recursive=True) if zk.exists('/ephemeral_failover_demo') else None; zk.stop()"
+      run_once: true
+      ignore_errors: yes
+
+    - name: Start OBSERVER on node-1 (watches for 45 seconds)
+      command: python3 /tmp/zk_ephemeral_demo.py observer 45
+      async: 60
+      poll: 0
+      register: observer_job
+      when: inventory_hostname == 'node-1'
+
+    - name: Give observer a moment to initialize the watch
+      pause:
+        seconds: 2
+
+    - name: Start WORKER on node-2 (lives for 30 seconds)
+      command: python3 /tmp/zk_ephemeral_demo.py worker 30
+      async: 45
+      poll: 0
+      when: inventory_hostname == 'node-2'
+
+    - name: Start WORKER on node-3 (lives for 30 seconds)
+      command: python3 /tmp/zk_ephemeral_demo.py worker 30
+      async: 45
+      poll: 0
+      when: inventory_hostname == 'node-3'
+
+    - name: Start WORKER on node-4 (lives for 30 seconds)
+      command: python3 /tmp/zk_ephemeral_demo.py worker 30
+      async: 45
+      poll: 0
+      when: inventory_hostname == 'node-4'
+
+    - name: Allow workers to connect and register
+      pause:
+        seconds: 5
+
+    - name: 💥 CRASH THE ZOOKEEPER LEADER ({{ zk_leader }}) 💥
+      command: "docker stop {{ zk_leader }}"
+      delegate_to: localhost
+      run_once: true
+
+    - name: 🔄 Wait for a NEW Zookeeper leader to be elected dynamically
+      shell: |
+        {% for host in groups['zookeeper'] %}
+        if [ "{{ host }}" != "{{ zk_leader }}" ]; then
+          role=$(docker exec {{ host }} bash -c 'echo stat | nc localhost 2181 2>/dev/null' | grep '^Mode:' | awk '{print $2}')
+          if [ "$role" == "leader" ]; then
+            echo "{{ host }}"
+            exit 0
+          fi
+        fi
+        {% endfor %}
+        exit 1
+      register: new_leader_check
+      delegate_to: localhost
+      run_once: true
+      retries: 30
+      delay: 1
+      until: new_leader_check.rc == 0
+      changed_when: false
+
+    - name: 📢 Announce New Leader Election
+      debug:
+        msg: "The cluster has successfully elected a NEW leader: {{ new_leader_check.stdout }}!"
+      run_once: true
+
+    - name: 🛠️ RECOVER THE ORIGINAL ZOOKEEPER LEADER ({{ zk_leader }}) 🛠️
+      command: "docker start {{ zk_leader }}"
+      delegate_to: localhost
+      run_once: true
+
+    - name: Wait for Observer to finish and gather its logs
+      async_status:
+        jid: "{{ observer_job.ansible_job_id }}"
+      register: observer_result
+      until: observer_result.finished
+      retries: 45
+      delay: 1
+      when: inventory_hostname == 'node-1'
+
+    - name: "=== EPHEMERAL NODES FAILOVER RESULTS ==="
+      debug:
+        msg: "{{ observer_result.stdout_lines }}"
+      when: inventory_hostname == 'node-1'
+
+    - name: "Key Takeaway"
+      run_once: true
+      debug:
+        msg: |
+          As you can see in the log above:
+          Even though the Zookeeper leader crashed and a new election happened,
+          the ephemeral worker nodes maintained their session through the proxy
+          and did not drop out of the cluster during the failover event!

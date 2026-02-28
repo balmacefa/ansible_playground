@@ -1,0 +1,95 @@
+---
+- name: Zookeeper Showcase - Power and Use Cases
+  hosts: nodes
+  become: yes
+  tasks:
+    - name: Ensure kazoo python library is installed
+      pip:
+        name: kazoo
+        executable: pip3
+
+    - name: Create showcasing python script
+      copy:
+        dest: /tmp/zk_showcase.py
+        mode: '0755'
+        content: |
+          #!/usr/bin/env python3
+          import sys
+          import time
+          import socket
+          import platform
+          from kazoo.client import KazooClient
+          from kazoo.recipe.lock import Lock
+
+          zk_hosts = 'zookeeper-proxy:2181'
+          
+          # Check connection
+          try:
+              s = socket.create_connection(("zookeeper-proxy", 2181), timeout=2)
+              s.close()
+          except Exception as e:
+              print("Cannot reach zookeeper. Is it running?")
+              sys.exit(1)
+
+          zk = KazooClient(hosts=zk_hosts)
+          zk.start()
+
+          hostname = platform.node()
+          print(f"--- {hostname} Showcase Started ---")
+
+          # 1. Ephemeral Nodes (Service Discovery / Presence)
+          # These nodes will automatically be deleted by ZK if the client disconnects or crashes.
+          # This allows the rest of the cluster to know exactly who is alive.
+          zk.ensure_path("/showcase/presence")
+          presence_path = f"/showcase/presence/{hostname}"
+          if zk.exists(presence_path):
+              zk.delete(presence_path)
+          zk.create(presence_path, ephemeral=True)
+          print(f"[{hostname}] 1/3: Registered ephemeral presence at {presence_path}")
+
+          # 2. Distributed Locks (Leader Election / Exclusive Access)
+          # All nodes will attempt to acquire this lock, but Zookeeper guarantees
+          # strictly only one node gets it at a time. The others will wait.
+          lock = Lock(zk, "/showcase/lock")
+          print(f"[{hostname}] 2/3: Waiting in queue to acquire distributed lock...")
+          
+          with lock:
+              print(f"[{hostname}] >>> ACQUIRED LOCK! <<< I am exclusively performing work.")
+              
+              # 3. Distributed Configuration Management
+              # Centralized configuration that all nodes can read/write and watch for changes.
+              zk.ensure_path("/showcase/config")
+              data, stat = zk.get("/showcase/config")
+              if data:
+                  print(f"[{hostname}]    Current Shared Config: {data.decode('utf-8')}")
+              
+              print(f"[{hostname}] 3/3: Updating shared cluster config...")
+              new_config = f"Config modified by active worker {hostname} at {time.time()}"
+              zk.set("/showcase/config", new_config.encode('utf-8'))
+              
+              # Hold the lock briefly to simulate work and let others wait
+              time.sleep(2)
+              print(f"[{hostname}] Finished exclusive work, releasing lock...")
+              
+          zk.stop()
+          print(f"--- {hostname} Showcase Finished ---")
+
+    - name: "Execute Zookeeper Showcase Script on multiple nodes (Async)"
+      command: python3 /tmp/zk_showcase.py
+      # We use async to launch them roughly simultaneously and wait for them to finish
+      async: 60
+      poll: 5
+      register: showcase_out
+
+    - name: Display Showcase Output
+      debug:
+        msg: "{{ showcase_out.stdout_lines }}"
+
+    - name: "Zookeeper Power - Summary"
+      run_once: true
+      debug:
+        msg: |
+          Zookeeper Core Powers Showcased:
+          1. Service Discovery (Ephemeral Nodes): Each node dynamically registered its presence. If a node died unexpectedly, Zookeeper would automatically remove its node, instantly alerting the rest of the cluster.
+          2. Distributed Locks/Leader Election (Lock Recipe): All nodes tried to execute the critical section simultaneously, but Zookeeper's Lock ensured they queued up and executed one by one safely without race conditions.
+          3. Shared Configuration Management: The nodes securely read and updated a shared configuration state, demonstrating how a cluster can dynamically coordinate and share data across multiple servers.
